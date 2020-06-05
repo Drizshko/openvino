@@ -28,6 +28,7 @@ class MockPluginImpl {
         LoadExeNetwork(exeNetwork, cnnNetwork, config);
     }
     MOCK_METHOD1(AddExtension, void(InferenceEngine::IExtensionPtr ext_ptr));
+    MOCK_METHOD1(SetExternalAllocator, void(InferenceEngine::IExternalAllocatorPtr allocator));
     MOCK_METHOD1(SetConfig, void(const std::map <std::string, std::string> &));
     IE_SUPPRESS_DEPRECATED_START
     MOCK_METHOD1(SetLogCallback, void(InferenceEngine::IErrorListener &));
