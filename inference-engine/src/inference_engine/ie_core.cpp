@@ -208,6 +208,7 @@ class Core::Impl : public ICore {
 
     std::unordered_set<std::string> opsetNames;
     std::vector<IExtensionPtr> extensions;
+    IExternalAllocatorPtr allocator;
 
     std::map<std::string, PluginDescriptor> pluginRegistry;
     mutable std::mutex pluginsMutex;  // to lock parallel access to pluginRegistry and plugins
@@ -423,6 +424,10 @@ public:
                     plugin->AddExtension(ext, nullptr);
                 }
 
+                if (allocator) {
+                    plugin->SetExternalAllocator(allocator, nullptr);
+                }
+
                 InferencePlugin cppPlugin(plugin);
 
                 // configuring
@@ -567,6 +572,14 @@ public:
         }
         extensions.emplace_back(extension);
     }
+
+     /**
+     * @brief Registers memory manager within plugin
+     * @param manager - pointer to memory manager
+     */
+     virtual void SetExternalAllocator(InferenceEngine::IExternalAllocatorPtr ext_allocator) {
+         allocator = ext_allocator;
+     }
 
     /**
      * @brief Provides a list of extensions
@@ -739,6 +752,15 @@ void Core::AddExtension(IExtensionPtr extension, const std::string& deviceName_)
     }
 
     _impl->AddExtension(extension);
+}
+
+void Core::SetExternalAllocator(InferenceEngine::IExternalAllocatorPtr allocator, const std::string& deviceName) {
+    if (deviceName.find("CPU") != 0) {
+        THROW_IE_EXCEPTION
+            << deviceName << " device does not supportruntime manager.";
+    }
+
+    _impl->SetExternalAllocator(allocator);
 }
 
 ExecutableNetwork Core::ImportNetwork(const std::string& modelFileName, const std::string& deviceName,

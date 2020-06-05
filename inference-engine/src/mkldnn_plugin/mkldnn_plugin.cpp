@@ -6,6 +6,7 @@
 #include "mkldnn_plugin.h"
 #include "mkldnn_extension_mngr.h"
 #include "mkldnn_weights_cache.hpp"
+#include "mkldnn_memory_allocator.h"
 #include <cpp_interfaces/base/ie_plugin_base.hpp>
 #include <threading/ie_executor_manager.hpp>
 #include <memory>
@@ -200,6 +201,10 @@ Parameter Engine::GetMetric(const std::string& name, const std::map<std::string,
 
 void Engine::AddExtension(InferenceEngine::IExtensionPtr extension) {
     extensionManager->AddExtension(extension);
+}
+
+void Engine::SetExternalAllocator(InferenceEngine::IExternalAllocatorPtr allocator) {
+    MKLDNNMemoryAllocator::SetExternalAllocator(allocator);
 }
 
 void Engine::QueryNetwork(const ICNNNetwork& network, const std::map<std::string, std::string>& config, QueryNetworkResult& res) const {

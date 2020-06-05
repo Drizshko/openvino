@@ -54,8 +54,8 @@ void MKLDNNBatchNormalizationNode::getSupportedDescriptors() {
     if (variancesSize != meansSize && variancesSize != 1)
         THROW_IE_EXCEPTION << "Incorrect weights and biases sizes!";
 
-    internalBlobs.push_back(createInternalBlob(bnLayer->_weights->getTensorDesc().getDims(), true));
-    internalBlobs.push_back(createInternalBlob(bnLayer->_biases->getTensorDesc().getDims(), false));
+    internalBlobs.push_back(createInternalMemory(bnLayer->_weights->getTensorDesc().getDims(), true));
+    internalBlobs.push_back(createInternalMemory(bnLayer->_biases->getTensorDesc().getDims(), false));
 
     auto parentOutDims = getParentEdgeAt(0)->getDims();
 
@@ -69,10 +69,12 @@ void MKLDNNBatchNormalizationNode::getSupportedDescriptors() {
 
         size_t C = static_cast<size_t>(getChildEdgeAt(0)->getDims()[1]);
         SizeVector mkldnn_weights = {2, C};
-        TensorDesc desc(scshLayer->_weights->getTensorDesc().getPrecision(), mkldnn_weights, InferenceEngine::NC);
-        InferenceEngine::TBlob<float>::Ptr internalBlob = InferenceEngine::make_shared_blob<float>(desc);
-        internalBlob->allocate();
-        float * data = internalBlob->buffer();
+
+        MKLDNNMemoryPtr memory = MKLDNNMemoryPtr(new MKLDNNMemory(getEngine()));
+        memory->Create(MKLDNNDims(mkldnn_weights), memory::f32, memory::nc);
+
+        float* data = reinterpret_cast<float*>(memory->GetData());
+
         if (data == nullptr)
             THROW_IE_EXCEPTION << "Cannot get memory!";
 
@@ -81,7 +83,7 @@ void MKLDNNBatchNormalizationNode::getSupportedDescriptors() {
             THROW_IE_EXCEPTION << "Cannot get weights blob for node " << getName() << ".";
 
         size_t weightsByteSize = blb->byteSize();
-        ie_memcpy(data, internalBlob->byteSize(), blb->buffer(), weightsByteSize);
+        ie_memcpy(data, memory->GetSize(), blb->buffer(), weightsByteSize);
         data += blb->size();
         blb = scshLayer->_biases;
 
@@ -90,9 +92,9 @@ void MKLDNNBatchNormalizationNode::getSupportedDescriptors() {
         } else {
             if (weightsByteSize != blb->byteSize())
                 THROW_IE_EXCEPTION << "ScaleShift has incorrect weights!";
-            ie_memcpy(data, internalBlob->byteSize(), blb->buffer(), weightsByteSize);
+            ie_memcpy(data, memory->GetSize(), blb->buffer(), weightsByteSize);
         }
-        internalBlobs.push_back(internalBlob);
+        internalBlobs.push_back(memory);
     }
 
     InferenceEngine::Precision precision = getCnnLayer()->insData[0].lock()->getPrecision();

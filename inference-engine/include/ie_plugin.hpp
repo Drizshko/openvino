@@ -24,6 +24,7 @@
 #include "ie_error.hpp"
 #include "ie_iexecutable_network.hpp"
 #include "ie_version.hpp"
+#include "ie_external_allocator.h"
 
 namespace InferenceEngine {
 
@@ -89,6 +90,14 @@ public:
      */
     virtual StatusCode AddExtension(InferenceEngine::IExtensionPtr extension,
                                     InferenceEngine::ResponseDesc* resp) noexcept = 0;
+
+    /**
+     * @brief Registers external allocator within plugin
+     * @param allocator - pointer to external allocator
+     * @param resp Pointer to the response message that holds a description of an error if any occurred
+     * @return Status code of the operation. InferenceEngine::OK if succeeded
+     */
+    virtual StatusCode SetExternalAllocator(InferenceEngine::IExternalAllocatorPtr allocator, InferenceEngine::ResponseDesc* resp) noexcept { return OK; };
 
     /**
      * @brief Sets configuration for plugin, acceptable keys can be found in ie_plugin_config.hpp

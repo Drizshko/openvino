@@ -52,12 +52,12 @@ void MKLDNNDepthwiseNode::getSupportedDescriptors() {
     InferenceEngine::Blob::Ptr blb = wLayer->_weights;
     if (blb)
         realWeightSize = blb->size();
-    internalBlobs.push_back(createInternalBlob(weightDims, true));
+    internalBlobs.push_back(createInternalMemory(weightDims, true));
     if (isWithBiases()) {
         InferenceEngine::Blob::Ptr blb = wLayer->_biases;
         if (blb)
             realBiasSize = blb->size();
-        internalBlobs.push_back(createInternalBlob(weightDims, false));
+        internalBlobs.push_back(createInternalMemory(weightDims, false));
     }
 
     for (auto format : getAvailableFormatsForDims(parentOutDims)) {

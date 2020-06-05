@@ -87,7 +87,7 @@ void MKLDNNBinaryConvolutionNode::getSupportedDescriptors() {
 
     if (isGrouped || isMerged) weightDims.insert(weightDims.begin(), groupNum);
 
-    internalBlobs.push_back(createInternalBlob(weightDims, true));
+    internalBlobs.push_back(createInternalMemory(weightDims, true));
 
     Blob::Ptr weights = this->getCnnLayer()->blobs.find("weights")->second;
 

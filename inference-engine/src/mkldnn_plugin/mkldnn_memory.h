@@ -13,6 +13,7 @@
 #include <string>
 #include <mkldnn_types.h>
 #include <functional>
+#include <mkldnn_memory_allocator.h>
 
 namespace MKLDNNPlugin {
 
@@ -122,6 +123,7 @@ public:
 
 private:
     std::shared_ptr<mkldnn::memory> prim;
+    Memory memory_mgr;
     mkldnn::engine eng;
 };
 

@@ -95,7 +95,7 @@ void MKLDNNDeconvolutionNode::getSupportedDescriptors() {
     }
 
     if (getParentEdges().size() == 1)
-        internalBlobs.push_back(createInternalBlob(weightDims, true));
+        internalBlobs.push_back(createInternalMemory(weightDims, true));
 
     invertVectorCopyUtoI(deconvLayer->_stride, stride);
     for (int i = 1; i <= deconvLayer->_dilation.size(); i++) {

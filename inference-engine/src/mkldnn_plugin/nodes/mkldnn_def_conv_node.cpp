@@ -82,9 +82,9 @@ void MKLDNNDeformableConvolutionNode::getSupportedDescriptors() {
 
     withBiases = (defConvLayer->_biases != nullptr && defConvLayer->_biases->size() != 0);
 
-    internalBlobs.push_back(createInternalBlob(weightDims, true));
+    internalBlobs.push_back(createInternalMemory(weightDims, true));
     if (withBiases) {
-        internalBlobs.push_back(createInternalBlob(biasesDims, false));
+        internalBlobs.push_back(createInternalMemory(biasesDims, false));
     }
 
     invertVectorCopyUtoI(defConvLayer->_stride, stride);

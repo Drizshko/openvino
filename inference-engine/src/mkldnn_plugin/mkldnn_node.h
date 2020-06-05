@@ -498,7 +498,9 @@ protected:
         NoConst
     };
     ConstantType constant = ConstantType::Unknown;
-    std::vector<InferenceEngine::Blob::Ptr> internalBlobs;
+
+    std::vector<MKLDNNMemoryPtr> internalBlobs;
+
     std::vector<MKLDNNMemoryPtr> internalBlobMemory;
     std::vector<PrimitiveDescInfo> supportedPrimitiveDescriptors;
     MKLDNNPrimitive prim;
@@ -521,7 +523,7 @@ protected:
     std::vector<mkldnn::memory::format> getAvailableFormatsForDims(const MKLDNNDims& dims) const;
     int batchToProcess();
 
-    InferenceEngine::Blob::Ptr createInternalBlob(InferenceEngine::SizeVector dims, bool weights, bool is_grouped = false);
+    MKLDNNMemoryPtr createInternalMemory(InferenceEngine::SizeVector dims, bool weights, bool is_grouped = false);
 
     InferenceEngine::Layout getWeightsLayoutByDims(InferenceEngine::SizeVector dims, bool isGrouped);
 

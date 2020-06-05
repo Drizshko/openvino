@@ -27,6 +27,8 @@ public:
 
     void AddExtension(InferenceEngine::IExtensionPtr extension) override;
 
+    void SetExternalAllocator(InferenceEngine::IExternalAllocatorPtr allocator) override;
+
     void SetConfig(const std::map<std::string, std::string> &config) override;
 
     InferenceEngine::Parameter GetConfig(const std::string& name, const std::map<std::string, InferenceEngine::Parameter>& options) const override;

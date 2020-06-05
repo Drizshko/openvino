@@ -25,7 +25,35 @@
 #include "inputs_filling.hpp"
 #include "utils.hpp"
 
+#include <ie_external_allocator.h>
+
 using namespace InferenceEngine;
+
+class MemoryAllocator : public IExternalAllocator {
+public:
+    char* Allocate(size_t size) override {
+        auto _malloc = [](size_t size, int alignment) {
+            void *ptr;
+#ifdef _WIN32
+            ptr = _aligned_malloc(size, alignment);
+            int rc = ((ptr)? 0 : errno);
+#else
+            int rc = ::posix_memalign(&ptr, alignment, size);
+#endif /* _WIN32 */
+            return (rc == 0) ? reinterpret_cast<char*>(ptr) : nullptr;
+        };
+
+        return _malloc(size, 4096);
+    }
+
+    void Free(char* ptr) override {
+#ifdef _WIN32
+        _aligned_free(ptr);
+#else
+        ::free(ptr);
+#endif /* _WIN32 */
+    }
+};
 
 static const size_t progressBarDefaultTotalCount = 1000;
 
@@ -161,12 +189,18 @@ int main(int argc, char *argv[]) {
         // ----------------- 2. Loading the Inference Engine -----------------------------------------------------------
         next_step();
 
+        IExternalAllocatorPtr allocator = IExternalAllocatorPtr(new MemoryAllocator());
+
         Core ie;
         if (FLAGS_d.find("CPU") != std::string::npos && !FLAGS_l.empty()) {
             // CPU (MKLDNN) extensions is loaded as a shared library and passed as a pointer to base extension
             const auto extension_ptr = InferenceEngine::make_so_pointer<InferenceEngine::IExtension>(FLAGS_l);
             ie.AddExtension(extension_ptr);
             slog::info << "CPU (MKLDNN) extensions is loaded " << FLAGS_l << slog::endl;
+        }
+
+        if (FLAGS_d.find("CPU") != std::string::npos) {
+            ie.SetExternalAllocator(allocator, FLAGS_d);
         }
 
         // Load clDNN Extensions

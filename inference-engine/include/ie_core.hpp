@@ -18,6 +18,7 @@
 #include "details/os/os_filesystem.hpp"
 #include "ie_extension.h"
 #include "ie_remote_context.hpp"
+#include "ie_external_allocator.h"
 
 namespace InferenceEngine {
 
@@ -54,7 +55,6 @@ class INFERENCE_ENGINE_API_CLASS(Core) {
 
 public:
     /** @brief Constructs Inference Engine Core instance using XML configuration file with
-     * plugins description.
      *
      * See RegisterPlugins for more details.
      *
@@ -154,6 +154,12 @@ public:
      * @param deviceName Device name to identify plugin to add an executable extension
      */
     void AddExtension(IExtensionPtr extension, const std::string& deviceName);
+
+    /**
+     * @brief Registers external allocator within plugin
+     * @param manager - pointer to external allocator
+     */
+    void SetExternalAllocator(InferenceEngine::IExternalAllocatorPtr allocator, const std::string& deviceName);
 
     /**
      * @brief Creates an executable network from a previously exported network

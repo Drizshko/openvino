@@ -116,35 +116,29 @@ void MKLDNNFullyConnectedNode::getSupportedDescriptors() {
     }
 
     if (baseInputsNumber == 1) {
-        internalBlobs.push_back(createInternalBlob(weightsDims, true));
+        internalBlobs.push_back(createInternalMemory(weightsDims, true));
     }
 
     withBiases = (fcLayer->_biases != nullptr && fcLayer->_biases->size() != 0) || baseInputsNumber == 3;
     biasesDims.push_back(static_cast<int>(fcLayer->_out_num));
     if (withBiases && baseInputsNumber == 1) {
-        internalBlobs.push_back(createInternalBlob(biasesDims, false));
+        internalBlobs.push_back(createInternalMemory(biasesDims, false));
     }
 
     if (this->getCnnLayer()->blobs.find("weights") != this->getCnnLayer()->blobs.end()) {
         Blob::Ptr weights = this->getCnnLayer()->blobs.find("weights")->second;
         if (weights->getTensorDesc().getPrecision() == Precision::I8) {
             // The weights blob has incorrect dims, so we have to fix it
-            TensorDesc wdesc = internalBlobs[0]->getTensorDesc();
-            wdesc.setPrecision(Precision::I8);
-            InferenceEngine::TBlob<int8_t>::Ptr reshapedInt8Weights =
-                    InferenceEngine::TBlob<int8_t>::Ptr(
-                            new InferenceEngine::TBlob<int8_t>(wdesc, static_cast<int8_t *>(weights->buffer()),
-                                                               weights->byteSize()));
+            MKLDNNMemoryPtr reshapedInt8Weights = MKLDNNMemoryPtr(new MKLDNNMemory(getEngine()));
+            reshapedInt8Weights->Create(internalBlobs[0]->GetDims(), memory::s8, internalBlobs[0]->GetFormat(), weights->buffer());
 
             internalBlobs[0] = reshapedInt8Weights;
+
             if (withBiases) {
                 Blob::Ptr biases = this->getCnnLayer()->blobs.find("biases")->second;
-                TensorDesc bdesc = internalBlobs[1]->getTensorDesc();
-                bdesc.setPrecision(Precision::I32);
-                InferenceEngine::TBlob<int32_t>::Ptr reshapedInt32Biases =
-                        InferenceEngine::TBlob<int32_t>::Ptr(
-                                new InferenceEngine::TBlob<int32_t>(bdesc, static_cast<int32_t *>(biases->buffer()),
-                                                                    biases->byteSize()));
+
+                MKLDNNMemoryPtr reshapedInt32Biases = MKLDNNMemoryPtr(new MKLDNNMemory(getEngine()));
+                reshapedInt32Biases->Create(internalBlobs[1]->GetDims(), memory::s32, internalBlobs[1]->GetFormat(), biases->buffer());
                 internalBlobs[1] = reshapedInt32Biases;
             }
         }

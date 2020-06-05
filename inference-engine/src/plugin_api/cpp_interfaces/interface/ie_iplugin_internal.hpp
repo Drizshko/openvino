@@ -17,6 +17,7 @@
 #include <ie_plugin.hpp>
 #include <ie_iexecutable_network.hpp>
 #include <ie_remote_context.hpp>
+#include <ie_external_allocator.h>
 
 #include <blob_factory.hpp>
 
@@ -139,6 +140,14 @@ public:
      * @param extension - pointer to already loaded extension
      */
     virtual void AddExtension(InferenceEngine::IExtensionPtr extension) = 0;
+
+    /**
+     * @brief Registers memory manager within plugin
+     * @param manager - pointer to memory manager
+     */
+     virtual void SetExternalAllocator(InferenceEngine::IExternalAllocatorPtr allocator) {
+         THROW_IE_EXCEPTION << "Not implemented.";
+     }
 
     /**
      * @brief Sets configuration for plugin, acceptable keys can be found in ie_plugin_config.hpp

@@ -89,6 +89,11 @@ public:
         TO_STATUS(_impl->AddExtension(extension));
     }
 
+    StatusCode SetExternalAllocator(InferenceEngine::IExternalAllocatorPtr allocator,
+                            InferenceEngine::ResponseDesc* resp) noexcept override {
+        TO_STATUS(_impl->SetExternalAllocator(allocator));
+    }
+
     StatusCode SetConfig(const std::map<std::string, std::string>& config, ResponseDesc* resp) noexcept override {
         TO_STATUS(_impl->SetConfig(config));
     }

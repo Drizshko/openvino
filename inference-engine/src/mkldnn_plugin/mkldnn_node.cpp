@@ -663,7 +663,7 @@ void MKLDNNNode::initDescriptor(const InferenceEngine::LayerConfig &config) {
     selectedPD->getConfig() = rightConfig;
 }
 
-InferenceEngine::Blob::Ptr MKLDNNNode::createInternalBlob(InferenceEngine::SizeVector dims, bool weights, bool isGrouped) {
+MKLDNNMemoryPtr MKLDNNNode::createInternalMemory(InferenceEngine::SizeVector dims, bool weights, bool isGrouped) {
     auto checkSize = [](size_t dst_size, size_t src_size) {
         if (dst_size < src_size) {
             THROW_IE_EXCEPTION << "Cannot create internal buffer. Buffer can be overrun.";
@@ -703,25 +703,63 @@ InferenceEngine::Blob::Ptr MKLDNNNode::createInternalBlob(InferenceEngine::SizeV
         }
     };
 
-    Blob::Ptr internalBlob;
-    if (blb->getTensorDesc().getPrecision() == Precision::BIN) {
-        internalBlob = InferenceEngine::make_shared_blob<int8_t>(desc);
-    } else if (blb->getTensorDesc().getPrecision() == Precision::I8) {
-        internalBlob = InferenceEngine::make_shared_blob<int8_t>(desc);
-    } else if (blb->getTensorDesc().getPrecision() == Precision::I32) {
-        internalBlob = InferenceEngine::make_shared_blob<int32_t>(desc);
-    } else if (blb->getTensorDesc().getPrecision() == Precision::BF16) {
-        internalBlob = InferenceEngine::make_shared_blob<int16_t>(desc);
-    } else {
-        internalBlob = InferenceEngine::make_shared_blob<float>(desc);
+    MKLDNNDims mem_dims(dims);
+    memory::data_type data_type;
+    memory::format format;
+
+    switch (dims.size()) {
+        case 0:
+            format = memory::x;
+            break;
+        case 1:
+            format = memory::x;
+            break;
+        case 2:
+            format = memory::nc;
+            break;
+        case 3:
+           format = memory::tnc;
+            break;
+        case 4:
+            format = memory::oihw;
+            break;
+        case 5:
+            format = isGrouped ? memory::goihw : memory::oidhw;
+            break;
+        case 6:
+            format = isGrouped ? memory::goidhw : memory::blocked;
+            break;
+        default:
+            format = memory::blocked;
     }
-    internalBlob->allocate();
-    char *data = internalBlob->buffer();
-    size_t intBuffSize = internalBlob->byteSize();
+
+    switch (blb->getTensorDesc().getPrecision()) {
+        case Precision::BIN:
+        case Precision::I8:
+            data_type = memory::s8;
+            break;
+        case Precision::I32:
+            data_type = memory::s32;
+            break;
+        case Precision::BF16:
+            data_type = memory::s16;
+            break;
+        case Precision::FP32:
+            data_type = memory::f32;
+            break;
+        default:
+            THROW_IE_EXCEPTION << "Unsupported data type while creating internal memory blob.";
+    }
+
+    MKLDNNMemoryPtr memoryPtr = MKLDNNMemoryPtr(new MKLDNNMemory(engine));
+    memoryPtr->Create(mem_dims, data_type, format);
+
+    char *data = reinterpret_cast<char*>(memoryPtr->GetData());
+    size_t intBuffSize = memoryPtr->GetSize();
 
     fillInternalBlob(data, intBuffSize);
 
-    return internalBlob;
+    return memoryPtr;
 }
 
 void MKLDNNNode::prepareMemory(const PrimitiveDescInfo *selected_pd, mkldnn::primitive_desc_iterator& itpd) {
@@ -746,7 +784,7 @@ void MKLDNNNode::prepareMemory(const PrimitiveDescInfo *selected_pd, mkldnn::pri
         const auto &internalBlob = internalBlobs[i];
 
         auto create = [&] () {
-            auto newDesc = MKLDNNMemoryDesc(internalBlob->getTensorDesc());
+            auto newDesc = MKLDNNMemoryDesc(internalBlob->GetDescriptor());
             auto newFormat = newDesc.getFormat();
             if (newFormat == mkldnn::memory::ncdhw) {
                 newFormat = mkldnn::memory::goihw;
@@ -756,7 +794,7 @@ void MKLDNNNode::prepareMemory(const PrimitiveDescInfo *selected_pd, mkldnn::pri
             }
 
             MKLDNNMemory memory{ engine };
-            memory.Create(MKLDNNMemoryDesc(newDesc.getDims(), newDesc.getDataType(), newFormat), internalBlob->buffer());
+            memory.Create(MKLDNNMemoryDesc(newDesc.getDims(), newDesc.getDataType(), newFormat), internalBlob->GetData());
 
             MKLDNNMemoryPtr _ptr = MKLDNNMemoryPtr(new MKLDNNMemory(engine));
             _ptr->Create(intDescs[i]);
@@ -768,10 +806,10 @@ void MKLDNNNode::prepareMemory(const PrimitiveDescInfo *selected_pd, mkldnn::pri
         MKLDNNMemoryPtr ptr;
         if (weightCache != nullptr) {
             const uint64_t data_hash = weightCache->GetHashFunc().hash(
-                    internalBlob->buffer(), internalBlob->byteSize());
+                    reinterpret_cast<const unsigned char*>(internalBlob->GetData()), internalBlob->GetSize());
 
             const std::string string_hash = name + "_" + std::to_string(i)
-                                            + "_" + std::to_string(internalBlob->byteSize())
+                                            + "_" + std::to_string(internalBlob->GetSize())
                                             + "_" + std::to_string(data_hash);
 
             ptr = weightCache->findOrCreate(string_hash, create);

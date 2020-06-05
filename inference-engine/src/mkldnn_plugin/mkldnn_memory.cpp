@@ -55,17 +55,9 @@ void MKLDNNMemory::Create(const mkldnn::memory::desc& desc, const void *data, bo
     auto primitive_desc = memory::primitive_desc(desc, eng);
 
     if (data == nullptr) {
-        prim.reset(new memory(primitive_desc));
+        memory_mgr = MKLDNNMemoryAllocator::Allocate(primitive_desc.get_size());
 
-        size_t real_size = 0;
-        if (desc.data.format == mkldnn_wino_fmt)
-            return;
-        if (prim->get_primitive_desc().desc().data.ndims > 0) {
-            real_size = static_cast<size_t>(prim->get_primitive_desc().desc().data.layout_desc.blocking.padding_dims[0]);
-            for (int i = 1; i < prim->get_primitive_desc().desc().data.ndims; i++) {
-                real_size *= prim->get_primitive_desc().desc().data.layout_desc.blocking.padding_dims[i];
-            }
-        }
+        prim.reset(new memory(primitive_desc, memory_mgr.get()));
     } else {
         // MKLDNN accepts not a const data, probably need to remove some level of consteness in a call stack
 
