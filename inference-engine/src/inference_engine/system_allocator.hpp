@@ -5,10 +5,11 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 
 #include "ie_allocator.hpp"
 
-class SystemMemoryAllocator : public InferenceEngine::IAllocator {
+class DefaultMemoryAllocator : public InferenceEngine::IAllocator {
 public:
     void Release() noexcept override {
         delete this;

@@ -72,6 +72,7 @@ protected:
  *
  * @return The Inference Engine IAllocator* instance
  */
-INFERENCE_ENGINE_API(InferenceEngine::IAllocator*) CreateDefaultAllocator() noexcept;
+INFERENCE_ENGINE_API(IAllocator*) GetSystemAllocator() noexcept;
+INFERENCE_ENGINE_API(void) SetSystemAllocator(IAllocator* allocator) noexcept;
 
 }  // namespace InferenceEngine

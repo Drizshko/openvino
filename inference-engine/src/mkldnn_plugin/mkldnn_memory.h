@@ -123,6 +123,8 @@ public:
 private:
     std::shared_ptr<mkldnn::memory> prim;
     mkldnn::engine eng;
+
+    std::shared_ptr<void> allocator;
 };
 
 

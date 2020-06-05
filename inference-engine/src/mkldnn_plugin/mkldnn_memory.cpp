@@ -13,6 +13,7 @@
 #include "mkldnn_memory.h"
 #include "mkldnn_node.h"
 #include "mkldnn_extension_utils.h"
+#include "ie_allocator.hpp"
 
 using namespace InferenceEngine;
 using namespace mkldnn;
@@ -55,17 +56,15 @@ void MKLDNNMemory::Create(const mkldnn::memory::desc& desc, const void *data, bo
     auto primitive_desc = memory::primitive_desc(desc, eng);
 
     if (data == nullptr) {
-        prim.reset(new memory(primitive_desc));
+        auto _free = [](void* p) {
+            GetSystemAllocator()->free(p);
+        };
 
-        size_t real_size = 0;
-        if (desc.data.format == mkldnn_wino_fmt)
-            return;
-        if (prim->get_primitive_desc().desc().data.ndims > 0) {
-            real_size = static_cast<size_t>(prim->get_primitive_desc().desc().data.layout_desc.blocking.padding_dims[0]);
-            for (int i = 1; i < prim->get_primitive_desc().desc().data.ndims; i++) {
-                real_size *= prim->get_primitive_desc().desc().data.layout_desc.blocking.padding_dims[i];
-            }
-        }
+        void* ptr = GetSystemAllocator()->alloc(primitive_desc.get_size());
+
+        allocator.reset(ptr, _free);
+
+        prim.reset(new memory(primitive_desc, allocator.get()));
     } else {
         // MKLDNN accepts not a const data, probably need to remove some level of consteness in a call stack
 

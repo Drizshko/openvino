@@ -13,7 +13,7 @@ class SystemAllocatorReleaseTests : public CommonTestUtils::TestsCommon {
 };
 
 TEST_F(SystemAllocatorReleaseTests, canRelease) {
-    SystemMemoryAllocator *allocator_ = new SystemMemoryAllocator();
+    DefaultMemoryAllocator *allocator_ = new DefaultMemoryAllocator();
     allocator_->Release();
 }
 
@@ -33,11 +33,11 @@ protected:
         ASSERT_EQ(allocator.get(), nullptr);
     }
 
-    std::unique_ptr<SystemMemoryAllocator> createSystemMemoryAllocator() {
-        return std::unique_ptr<SystemMemoryAllocator>(new SystemMemoryAllocator());
+    std::unique_ptr<DefaultMemoryAllocator> createSystemMemoryAllocator() {
+        return std::unique_ptr<DefaultMemoryAllocator>(new DefaultMemoryAllocator());
     }
 
-    std::unique_ptr<SystemMemoryAllocator> allocator;
+    std::unique_ptr<DefaultMemoryAllocator> allocator;
 public:
 };
 
