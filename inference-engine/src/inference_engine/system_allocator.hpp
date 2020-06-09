@@ -9,7 +9,7 @@
 
 #include "ie_allocator.hpp"
 
-class DefaultMemoryAllocator : public InferenceEngine::IAllocator {
+class SystemMemoryAllocator : public InferenceEngine::IAllocator {
 public:
     void Release() noexcept override {
         delete this;
@@ -22,17 +22,27 @@ public:
     void unlock(void* a) noexcept override {}
 
     void* alloc(size_t size) noexcept override {
-        try {
-            auto handle = reinterpret_cast<void*>(new char[size]);
-            return handle;
-        } catch (...) {
-            return nullptr;
-        }
+        auto _malloc = [](size_t size, int alignment) {
+            void *ptr;
+#ifdef _WIN32
+            ptr = _aligned_malloc(size, alignment);
+            int rc = ((ptr)? 0 : errno);
+#else
+            int rc = ::posix_memalign(&ptr, alignment, size);
+#endif /* _WIN32 */
+            return (rc == 0) ? reinterpret_cast<char*>(ptr) : nullptr;
+        };
+
+        return _malloc(size, 4096);
     }
 
-    bool free(void* handle) noexcept override {
+    bool free(void* ptr) noexcept override {
         try {
-            delete[] reinterpret_cast<char*>(handle);
+#ifdef _WIN32
+            _aligned_free(ptr);
+#else
+            ::free(ptr);
+#endif /* _WIN32 */
         } catch (...) {
         }
         return true;

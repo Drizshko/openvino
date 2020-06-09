@@ -30,6 +30,11 @@ enum LockOp {
 class IAllocator : public details::IRelease {
 public:
     /**
+     * @brief A shared pointer to the IAllocator interface
+     */
+    using Ptr = std::shared_ptr<IAllocator>;
+
+    /**
      * @brief Maps handle to heap memory accessible by any memory manipulation routines.
      *
      * @param handle Handle to the allocated memory to be locked
@@ -70,9 +75,22 @@ protected:
 /**
  * @brief Creates the default implementation of the Inference Engine allocator per plugin.
  *
- * @return The Inference Engine IAllocator* instance
+ * @return The Inference Engine IAllocator* instance.
+ */
+INFERENCE_ENGINE_API(InferenceEngine::IAllocator*) CreateDefaultAllocator() noexcept;
+
+/**
+ * @brief Returns pointer to current memory system allocator.
+ *
+ * @return The Inference Engine IAllocator* instance.
  */
 INFERENCE_ENGINE_API(IAllocator*) GetSystemAllocator() noexcept;
+
+/**
+ * @brief Sets system memory allocator.
+ *
+ * @param allocator - pointer to instance of IAllocator interface.
+ */
 INFERENCE_ENGINE_API(void) SetSystemAllocator(IAllocator* allocator) noexcept;
 
 }  // namespace InferenceEngine

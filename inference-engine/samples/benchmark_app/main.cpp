@@ -18,9 +18,6 @@
 #include <samples/slog.hpp>
 #include <samples/args_helper.hpp>
 
-#include <ie_allocator.hpp>
-#include <mutex>
-
 #include "benchmark_app.hpp"
 #include "infer_request_wrap.hpp"
 #include "progress_bar.hpp"
@@ -39,92 +36,6 @@ uint64_t getDurationInMilliseconds(uint32_t duration) {
 uint64_t getDurationInNanoseconds(uint32_t duration) {
     return duration * 1000000000LL;
 }
-
-double roundOff(double n) {
-    double d = n * 100.0f;
-    int i = d + 0.5f;
-    d = i / 100.0f;
-    return d;
-}
-
-std::string convertByteSize(long long size) {
-    static std::vector<std::string> SIZES = { "B", "KB", "MB", "GB", "TB", "PB" };
-
-    int div = 0;
-    size_t rem = 0;
-
-    while (size >= 1024 && div < (SIZES.size() - 1)) {
-        rem = (size % 1024);
-        div++;
-        size /= 1024;
-    }
-
-    double size_d = size + rem / 1024.0f;
-
-    std::stringstream stream;
-    stream << std::fixed << std::setprecision(2) << roundOff(size_d);
-    std::string result = stream.str() + " " + SIZES[div];
-
-    return result;
-}
-
-class SystemAllocator : public IAllocator {
-public:
-    void Release() noexcept override {
-        delete this;
-    }
-
-    void* lock(void* handle, InferenceEngine::LockOp = InferenceEngine::LOCK_FOR_WRITE) noexcept override {
-        return handle;
-    }
-
-    void unlock(void* a) noexcept override {}
-
-    void* alloc(size_t size) noexcept override {
-        auto _malloc = [](size_t size, int alignment) {
-            void *ptr;
-#ifdef _WIN32
-            ptr = _aligned_malloc(size, alignment);
-            int rc = ((ptr)? 0 : errno);
-#else
-            int rc = ::posix_memalign(&ptr, alignment, size);
-#endif /* _WIN32 */
-            return (rc == 0) ? reinterpret_cast<char*>(ptr) : nullptr;
-        };
-
-        void* ptr = _malloc(size, 4096);
-
-        std::unique_lock<std::mutex> lock(_mutex);
-        _size_map[ptr] = size;
-        _allocated += size;
-
-        return ptr;
-    }
-
-    bool free(void* ptr) noexcept override {
-        try {
-#ifdef _WIN32
-            _aligned_free(ptr);
-#else
-            ::free(ptr);
-#endif /* _WIN32 */
-        } catch (...) {
-        }
-        std::unique_lock<std::mutex> lock(_mutex);
-        _allocated -= _size_map[ptr];
-
-        return true;
-    }
-
-    size_t allocated() {
-        return _allocated;
-    }
-
-private:
-    size_t _allocated = 0;
-    std::map<void*, size_t> _size_map;
-    std::mutex _mutex;
-};
 
 bool ParseAndCheckCommandLine(int argc, char *argv[]) {
     // ---------------------------Parsing and validating input arguments--------------------------------------
@@ -257,9 +168,6 @@ int main(int argc, char *argv[]) {
             ie.AddExtension(extension_ptr);
             slog::info << "CPU (MKLDNN) extensions is loaded " << FLAGS_l << slog::endl;
         }
-
-        SystemAllocator* allocator = new SystemAllocator();
-        SetSystemAllocator(allocator);
 
         // Load clDNN Extensions
         if ((FLAGS_d.find("GPU") != std::string::npos) && !FLAGS_c.empty()) {
@@ -399,7 +307,6 @@ int main(int argc, char *argv[]) {
             next_step();
 
             slog::info << "Loading network files" << slog::endl;
-            slog::info << "Memory allocated before: " << convertByteSize(allocator->allocated()) << slog::endl;
 
             auto startTime = Time::now();
             CNNNetwork cnnNetwork = ie.ReadNetwork(FLAGS_m);
@@ -410,8 +317,6 @@ int main(int argc, char *argv[]) {
                                           {
                                                   {"read network time (ms)", duration_ms}
                                           });
-
-            slog::info << "Memory allocated after: " << convertByteSize(allocator->allocated()) << slog::endl;
 
             const InputsDataMap inputInfo(cnnNetwork.getInputsInfo());
             if (inputInfo.empty()) {
@@ -458,10 +363,6 @@ int main(int argc, char *argv[]) {
             // ----------------- 7. Loading the model to the device --------------------------------------------------------
             next_step();
             startTime = Time::now();
-
-            slog::info << "Loading network to plugin" << slog::endl;
-            slog::info << "Memory allocated before: " << convertByteSize(allocator->allocated()) << slog::endl;
-
             exeNetwork = ie.LoadNetwork(cnnNetwork, device_name);
             duration_ms = double_to_string(get_total_ms_time(startTime));
             slog::info << "Load network took " << duration_ms << " ms" << slog::endl;
@@ -470,7 +371,6 @@ int main(int argc, char *argv[]) {
                                           {
                                                   {"load network time (ms)", duration_ms}
                                           });
-            slog::info << "Memory allocated after: " << convertByteSize(allocator->allocated()) << slog::endl;
         } else {
             next_step();
             slog::info << "Skipping the step for compiled network" << slog::endl;
@@ -576,9 +476,6 @@ int main(int argc, char *argv[]) {
         size_t iteration = 0;
 
         std::stringstream ss;
-
-        slog::info << "Memory allocated so far: " << convertByteSize(allocator->allocated()) << slog::endl;
-
         ss << "Start inference " << FLAGS_api << "ronously";
         if (FLAGS_api == "async") {
             if (!ss.str().empty()) {
@@ -739,8 +636,6 @@ int main(int argc, char *argv[]) {
         if (device_name.find("MULTI") == std::string::npos)
             std::cout << "Latency:    " << double_to_string(latency) << " ms" << std::endl;
         std::cout << "Throughput: " << double_to_string(fps) << " FPS" << std::endl;
-
-        slog::info << "Memory allocated after all: " << convertByteSize(allocator->allocated()) << slog::endl;
     } catch (const std::exception& ex) {
         slog::err << ex.what() << slog::endl;
 

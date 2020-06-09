@@ -8,9 +8,18 @@
 
 namespace InferenceEngine {
 
+IAllocator* CreateDefaultAllocator() noexcept {
+    try {
+        return new SystemMemoryAllocator();
+    } catch (...) {
+        return nullptr;
+    }
+}
+
 namespace
 {
     IAllocator* volatile _system_Allocator = nullptr;
+    IAllocator::Ptr _system_AllocatorPtr = nullptr;
     std::mutex _allocator_mutex;
 }
 
@@ -18,7 +27,8 @@ IAllocator* GetSystemAllocator() noexcept {
     try {
         if (_system_Allocator == nullptr) {
             std::unique_lock<std::mutex> lock(_allocator_mutex);
-            _system_Allocator = new DefaultMemoryAllocator();
+            _system_AllocatorPtr = shared_from_irelease(new SystemMemoryAllocator());
+            _system_Allocator = _system_AllocatorPtr.get();
         }
     } catch (...) {
     }
@@ -26,6 +36,10 @@ IAllocator* GetSystemAllocator() noexcept {
 }
 
 void SetSystemAllocator(IAllocator* allocator) noexcept {
+    if (_system_AllocatorPtr) {
+        _system_AllocatorPtr.reset();
+    }
+
     _system_Allocator = allocator;
 }
 

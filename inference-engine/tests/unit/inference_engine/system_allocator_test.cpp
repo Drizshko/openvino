@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <gtest/gtest.h>
+#include <ie_blob.h>
 
 #include "common_test_utils/test_common.hpp"
 
@@ -13,7 +14,7 @@ class SystemAllocatorReleaseTests : public CommonTestUtils::TestsCommon {
 };
 
 TEST_F(SystemAllocatorReleaseTests, canRelease) {
-    DefaultMemoryAllocator *allocator_ = new DefaultMemoryAllocator();
+    SystemMemoryAllocator *allocator_ = new SystemMemoryAllocator();
     allocator_->Release();
 }
 
@@ -33,12 +34,76 @@ protected:
         ASSERT_EQ(allocator.get(), nullptr);
     }
 
-    std::unique_ptr<DefaultMemoryAllocator> createSystemMemoryAllocator() {
-        return std::unique_ptr<DefaultMemoryAllocator>(new DefaultMemoryAllocator());
+    std::unique_ptr<SystemMemoryAllocator> createSystemMemoryAllocator() {
+        return std::unique_ptr<SystemMemoryAllocator>(new SystemMemoryAllocator());
     }
 
-    std::unique_ptr<DefaultMemoryAllocator> allocator;
+    std::unique_ptr<SystemMemoryAllocator> allocator;
 public:
+};
+
+class SystemAllocator : public InferenceEngine::IAllocator {
+public:
+    using Ptr = std::shared_ptr<SystemAllocator>;
+
+    void Release() noexcept override {
+        delete this;
+    }
+
+    void* lock(void* handle, InferenceEngine::LockOp = InferenceEngine::LOCK_FOR_WRITE) noexcept override {
+        return handle;
+    }
+
+    void unlock(void* a) noexcept override {}
+
+    void* alloc(size_t size) noexcept override {
+        auto _malloc = [](size_t size, int alignment) {
+            void *ptr;
+#ifdef _WIN32
+            ptr = _aligned_malloc(size, alignment);
+            int rc = ((ptr)? 0 : errno);
+#else
+            int rc = ::posix_memalign(&ptr, alignment, size);
+#endif /* _WIN32 */
+            return (rc == 0) ? reinterpret_cast<char*>(ptr) : nullptr;
+        };
+
+        void* ptr = _malloc(size, 4096);
+
+        std::unique_lock<std::mutex> lock(_mutex);
+        _size_map[ptr] = size;
+        _allocated += size;
+
+        return ptr;
+    }
+
+    bool free(void* ptr) noexcept override {
+        try {
+#ifdef _WIN32
+            _aligned_free(ptr);
+#else
+            ::free(ptr);
+#endif /* _WIN32 */
+        } catch (...) {
+        }
+        std::unique_lock<std::mutex> lock(_mutex);
+        _allocated -= _size_map[ptr];
+
+        std::cout << "Free: " << _size_map[ptr] << std::endl;
+
+        _size_map.erase(_size_map.find(ptr));
+
+        return true;
+    }
+
+    size_t allocated() const {
+        return _allocated;
+    }
+
+private:
+    size_t _allocated = 0;
+    std::map<void*, size_t> _size_map;
+    std::mutex _mutex;
 };
 
 TEST_F(SystemAllocatorTests, canAllocate) {
@@ -66,4 +131,36 @@ TEST_F(SystemAllocatorTests, canLockAndUnlockAllocatedMemory) {
     EXPECT_EQ(ptr[9999], 11);
     allocator->unlock(ptr);
     allocator->free(handle);
+}
+
+TEST_F(SystemAllocatorTests, canSetSystemAllocator) {
+    std::shared_ptr<SystemAllocator> allocator = shared_from_irelease(new SystemAllocator());
+    InferenceEngine::SetSystemAllocator(allocator.get());
+    EXPECT_EQ(allocator.get(), InferenceEngine::GetSystemAllocator());
+}
+
+TEST_F(SystemAllocatorTests, canCustomAllocatorAllocateAndFree) {
+    std::shared_ptr<SystemAllocator> allocator = shared_from_irelease(new SystemAllocator());
+    InferenceEngine::SetSystemAllocator(allocator.get());
+    auto* sysAllocator = InferenceEngine::GetSystemAllocator();
+    void* ptr = sysAllocator->alloc(1024);
+    EXPECT_NE(ptr, nullptr);
+    EXPECT_EQ(allocator->allocated(), 1024);
+    EXPECT_EQ(sysAllocator->free(ptr), true);
+    EXPECT_EQ(allocator->allocated(), 0);
+}
+
+TEST_F(SystemAllocatorTests, canCustomAllocatorAllocateBlob) {
+    std::shared_ptr<SystemAllocator> allocator = shared_from_irelease(new SystemAllocator());
+    InferenceEngine::SetSystemAllocator(allocator.get());
+
+    {
+        InferenceEngine::TBlob<float> blob({ InferenceEngine::Precision::FP32, { 1024 }, InferenceEngine::C });
+        blob.allocate();
+        EXPECT_EQ(allocator->allocated(), 1024 * sizeof(float));
+    }
+
+    EXPECT_EQ(allocator->allocated(), 0);
+
+    // shared_from_irelease
 }
