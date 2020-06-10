@@ -144,8 +144,7 @@ protected:
      * @brief Deallocates TBlobProxy data
      * Always throws exception. Not intended to be used
      */
-    bool deallocate() noexcept override {
-        return false;
+    void deallocate() noexcept override {
     }
 
 private:

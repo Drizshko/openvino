@@ -20,7 +20,8 @@ namespace InferenceEngine {
  */
 enum LockOp {
     LOCK_FOR_READ = 0,  //!< A flag to lock data for read
-    LOCK_FOR_WRITE  //!< A flag to lock data for write
+    LOCK_FOR_WRITE,     //!< A flag to lock data for write
+    LOCK_FOR_READ_WRITE //!< A flag to lock data for read-write
 };
 
 /**
@@ -63,7 +64,7 @@ public:
      * @param handle The handle to free
      * @return `false` if handle cannot be released, otherwise - `true`.
      */
-    virtual bool free(void* handle) noexcept = 0;
+    virtual void free(void* handle) noexcept = 0;
 
 protected:
     /**

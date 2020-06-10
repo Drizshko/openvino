@@ -18,5 +18,5 @@ public:
     MOCK_QUALIFIED_METHOD2(lock, noexcept, void*(void*, InferenceEngine::LockOp));
     MOCK_QUALIFIED_METHOD1(unlock, noexcept, void(void *));
     MOCK_QUALIFIED_METHOD1(alloc, noexcept, void*(size_t));
-    MOCK_QUALIFIED_METHOD1(free, noexcept, bool(void*));  // NOLINT(readability/casting)
+    MOCK_QUALIFIED_METHOD1(free, noexcept, void(void*));  // NOLINT(readability/casting)
 };

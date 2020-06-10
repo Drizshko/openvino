@@ -92,7 +92,7 @@ public:
      * @brief No operation is performed. Compound blob does not allocate/deallocate any data
      * @return false
      */
-    bool deallocate() noexcept override;
+    void deallocate() noexcept override;
 
     /**
      * @brief Always returns an empty LockedMemory object

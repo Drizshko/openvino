@@ -249,8 +249,7 @@ size_t CompoundBlob::element_size() const noexcept {
 
 void CompoundBlob::allocate() noexcept {}
 
-bool CompoundBlob::deallocate() noexcept {
-    return false;
+void CompoundBlob::deallocate() noexcept {
 }
 
 LockedMemory<void> CompoundBlob::buffer() noexcept {

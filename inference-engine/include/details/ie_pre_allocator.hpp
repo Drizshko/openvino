@@ -56,8 +56,7 @@ public:
      * @brief The PreAllocator class cannot release the handle
      * @return false
      */
-    bool free(void*) noexcept override {  // NOLINT
-        return false;
+    void free(void*) noexcept override {  // NOLINT
     }
 
     /**

@@ -77,7 +77,7 @@ public:
         return ptr;
     }
 
-    bool free(void* ptr) noexcept override {
+    void free(void* ptr) noexcept override {
         try {
 #ifdef _WIN32
             _aligned_free(ptr);
@@ -88,12 +88,7 @@ public:
         }
         std::unique_lock<std::mutex> lock(_mutex);
         _allocated -= _size_map[ptr];
-
-        std::cout << "Free: " << _size_map[ptr] << std::endl;
-
         _size_map.erase(_size_map.find(ptr));
-
-        return true;
     }
 
     size_t allocated() const {
@@ -116,11 +111,11 @@ TEST_F(SystemAllocatorTests, canAllocate) {
 }
 
 TEST_F(SystemAllocatorTests, canFree) {
-    EXPECT_TRUE(allocator->free(nullptr));
+    EXPECT_NO_THROW(allocator->free(nullptr));
     void *handle0 = reinterpret_cast<void *>(new char[0]);
     void *handle1 = reinterpret_cast<void *>(new char[100]);
-    EXPECT_TRUE(allocator->free(handle0));
-    EXPECT_TRUE(allocator->free(handle1));
+    EXPECT_NO_THROW(allocator->free(handle0));
+    EXPECT_NO_THROW(allocator->free(handle1));
 }
 
 TEST_F(SystemAllocatorTests, canLockAndUnlockAllocatedMemory) {
@@ -146,7 +141,7 @@ TEST_F(SystemAllocatorTests, canCustomAllocatorAllocateAndFree) {
     void* ptr = sysAllocator->alloc(1024);
     EXPECT_NE(ptr, nullptr);
     EXPECT_EQ(allocator->allocated(), 1024);
-    EXPECT_EQ(sysAllocator->free(ptr), true);
+    EXPECT_NO_THROW(sysAllocator->free(ptr));
     EXPECT_EQ(allocator->allocated(), 0);
 }
 

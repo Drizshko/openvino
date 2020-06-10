@@ -43,7 +43,7 @@ public:
         BlobType mem_type = BT_BUF_INTERNAL);
 
     void allocate() noexcept;
-    bool deallocate() noexcept;
+    void deallocate() noexcept;
     ParamMap getParams() const;
     std::string getDeviceName() const noexcept;
     std::shared_ptr<RemoteContext> getContext() const noexcept;
@@ -99,7 +99,7 @@ public:
             plane, mem_type), TpublicAPI(desc) {}
 
     void allocate() noexcept override { _impl.allocate(); }
-    bool deallocate() noexcept override { return _impl.deallocate(); }
+    void deallocate() noexcept override { _impl.deallocate(); }
     ParamMap getParams() const override { return _impl.getParams(); }
     std::string getDeviceName() const noexcept override { return _impl.getDeviceName(); }
     std::shared_ptr<RemoteContext> getContext() const noexcept override { return _impl.getContext(); }
@@ -193,7 +193,7 @@ public:
     * @brief Releases handle and all associated memory resources which invalidates the handle.
     * @return false if handle cannot be released, otherwise - true.
     */
-    bool   free(void* handle) noexcept override { return true; }
+    void free(void* handle) noexcept override { }
 
     void Release() noexcept override {}
 };

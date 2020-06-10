@@ -58,8 +58,7 @@ public:
     void * alloc(size_t size) noexcept override {
         return ptr;
     }
-    virtual bool   free(void* handle) noexcept {
-        return true;
+    virtual void   free(void* handle) noexcept {
     }
     virtual void Release() noexcept {
         delete this;

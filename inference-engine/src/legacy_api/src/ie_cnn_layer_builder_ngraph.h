@@ -84,8 +84,7 @@ private:
             return const_cast<void*>(_constOp->get_data_ptr());
         }
 
-        bool free(void*) noexcept override {  // NOLINT
-            return true;
+        void free(void*) noexcept override {  // NOLINT
         }
 
     private:

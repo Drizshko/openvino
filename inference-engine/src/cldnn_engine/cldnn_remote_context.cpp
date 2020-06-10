@@ -65,10 +65,9 @@ ParamMap CLDNNRemoteBlobImpl::getParams() const {
     }
 }
 
-bool CLDNNRemoteBlobImpl::deallocate() noexcept {
+void CLDNNRemoteBlobImpl::deallocate() noexcept {
     if (m_memObject != nullptr)
         m_memObject.reset();
-    return m_memObject == nullptr;
 }
 
 bool CLDNNRemoteBlobImpl::is_allocated() const noexcept {

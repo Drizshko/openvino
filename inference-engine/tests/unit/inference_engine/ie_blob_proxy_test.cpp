@@ -43,7 +43,7 @@ TEST(BlobProxyTests, shouldNotDeAllocate) {
 
     TBlobProxy<float> proxy(Precision::FP32, C, spBlob, 2, {2});
 
-    EXPECT_EQ(((Blob&)proxy).deallocate(), false);
+    EXPECT_NO_THROW(((Blob&)proxy).deallocate());
 }
 
 

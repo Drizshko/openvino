@@ -36,7 +36,7 @@ public:
         return _malloc(size, 4096);
     }
 
-    bool free(void* ptr) noexcept override {
+    void free(void* ptr) noexcept override {
         try {
 #ifdef _WIN32
             _aligned_free(ptr);
@@ -45,6 +45,5 @@ public:
 #endif /* _WIN32 */
         } catch (...) {
         }
-        return true;
     }
 };

@@ -58,7 +58,6 @@ TEST_F(BlobTests, secondAllocateWontMemLeak) {
     auto allocator = createMockAllocator();
 
     EXPECT_CALL(*allocator.get(), alloc(1 * 2 * 3 * sizeof(float))).Times(2).WillRepeatedly(testing::Return(reinterpret_cast<void*>(1)));
-    EXPECT_CALL(*allocator.get(), free(::testing::_)).Times(2).WillRepeatedly(testing::Return(true));
 
     {
         InferenceEngine::TBlob<float> blob({ InferenceEngine::Precision::FP32, v, InferenceEngine::CHW },

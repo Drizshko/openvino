@@ -175,7 +175,7 @@ public:
      *
      * Abstract method.
      */
-    virtual bool deallocate() noexcept = 0;
+    virtual void deallocate() noexcept = 0;
 
     /**
      * @deprecated Cast to MemoryBlob and use new wlock/rwlock API instead.
@@ -342,7 +342,7 @@ public:
      * Abstract method.
      * @return `True` if deallocation happens successfully, `false` otherwise.
      */
-    bool deallocate() noexcept override = 0;
+    void deallocate() noexcept override = 0;
 
     /**
      * @deprecated Use wmap() or rwmap() API instead.
@@ -603,8 +603,8 @@ public:
     /**
      * @brief Frees all allocated data
      */
-    bool deallocate() noexcept override {
-        return free();
+    void deallocate() noexcept override {
+        free();
     }
 
     /**
@@ -719,10 +719,9 @@ protected:
     /**
      * @brief Frees handler and cleans up the stored data.
      */
-    virtual bool free() {
-        bool bCanRelease = getAllocator()->free(_handle);
+    virtual void free() {
+        getAllocator()->free(_handle);
         _handle = nullptr;
-        return bCanRelease;
     }
 
     /**
