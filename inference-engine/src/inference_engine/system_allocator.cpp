@@ -5,6 +5,9 @@
 #include <mutex>
 
 #include "system_allocator.hpp"
+#include "ngraph/runtime/allocator.hpp"
+
+using namespace ngraph;
 
 namespace InferenceEngine {
 
@@ -18,20 +21,13 @@ IAllocator* CreateDefaultAllocator() noexcept {
 
 namespace
 {
-    IAllocator* volatile _system_Allocator = nullptr;
-    IAllocator::Ptr _system_AllocatorPtr = nullptr;
-    std::mutex _allocator_mutex;
+    IAllocator::Ptr _system_AllocatorPtr = shared_from_irelease(CreateDefaultAllocator());
+    IAllocator* volatile _system_Allocator = _system_AllocatorPtr.get();
+
+    NGraphAllocator::Ptr _ngraph_AllocatorPtr = NGraphAllocator::Ptr(new NGraphAllocator());
 }
 
 IAllocator* GetSystemAllocator() noexcept {
-    try {
-        if (_system_Allocator == nullptr) {
-            std::unique_lock<std::mutex> lock(_allocator_mutex);
-            _system_AllocatorPtr = shared_from_irelease(new SystemMemoryAllocator());
-            _system_Allocator = _system_AllocatorPtr.get();
-        }
-    } catch (...) {
-    }
     return _system_Allocator;
 }
 
@@ -41,6 +37,7 @@ void SetSystemAllocator(IAllocator* allocator) noexcept {
     }
 
     _system_Allocator = allocator;
+    set_system_allocator(_ngraph_AllocatorPtr.get());
 }
 
 }  // namespace InferenceEngine

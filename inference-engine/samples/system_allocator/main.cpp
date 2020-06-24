@@ -94,7 +94,7 @@ public:
         return ptr;
     }
 
-    bool free(void* ptr) noexcept override {
+    void free(void* ptr) noexcept override {
         try {
 #ifdef _WIN32
             _aligned_free(ptr);

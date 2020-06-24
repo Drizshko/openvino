@@ -31,6 +31,7 @@
 #include "ngraph/partial_shape.hpp"
 #include "ngraph/shape.hpp"
 #include "ngraph/util.hpp"
+#include "runtime/allocator.hpp"
 
 #include <iostream>
 
@@ -162,7 +163,7 @@ size_t ngraph::hash_combine(const std::vector<size_t>& list)
 
 void* ngraph::ngraph_malloc(size_t size)
 {
-    auto ptr = malloc(size);
+    auto ptr = get_system_allocator()->alloc(size);
     if (size != 0 && !ptr)
     {
         NGRAPH_ERR << "malloc failed to allocate memory of size " << size;
@@ -175,7 +176,7 @@ void ngraph::ngraph_free(void* ptr)
 {
     if (ptr)
     {
-        free(ptr);
+        get_system_allocator()->free(ptr);
     }
 }
 

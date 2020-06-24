@@ -650,6 +650,10 @@ set (SRC
     rank.hpp
     rt_info.cpp
     rt_info.hpp
+    runtime/allocator.cpp
+    runtime/allocator.hpp
+    runtime/system_allocator.cpp
+    runtime/system_allocator.hpp
     runtime/aligned_buffer.cpp
     runtime/aligned_buffer.hpp
     runtime/host_tensor.cpp

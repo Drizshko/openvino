@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 
+#include "ngraph/runtime/allocator.hpp"
 #include "ie_allocator.hpp"
 
 class SystemMemoryAllocator : public InferenceEngine::IAllocator {
@@ -45,5 +46,18 @@ public:
 #endif /* _WIN32 */
         } catch (...) {
         }
+    }
+};
+
+class NGraphAllocator : public ngraph::runtime::Allocator {
+public:
+    using Ptr = std::shared_ptr<ngraph::runtime::Allocator>;
+
+    void* alloc(size_t size) noexcept override {
+        return InferenceEngine::GetSystemAllocator()->alloc(size);
+    }
+
+    void free(void* handle) noexcept override {
+        return InferenceEngine::GetSystemAllocator()->free(handle);
     }
 };

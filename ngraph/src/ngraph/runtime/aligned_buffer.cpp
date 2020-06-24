@@ -59,7 +59,7 @@ runtime::AlignedBuffer::~AlignedBuffer()
 {
     if (m_allocated_buffer != nullptr)
     {
-        free(m_allocated_buffer);
+        ngraph_free(m_allocated_buffer);
     }
 }
 
